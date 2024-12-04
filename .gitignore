@@ -2,3 +2,5 @@ node_modules
 .env
 .vscode
 tmp
+build
+uploads

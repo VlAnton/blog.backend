@@ -23,8 +23,8 @@
     "types": ["node"],
     "baseUrl": ".",
     "paths": {
-      "*": ["types/*"]
+      "@/*": ["./src/*"]
     },
-    "outDir": "dist"
+    "outDir": "build"
   }
 }
