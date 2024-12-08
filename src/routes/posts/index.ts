@@ -1,7 +1,7 @@
 import { Request, Response } from 'express'
-import { Post } from '@/db/db-client'
+import { Post, PostBLock } from '@/db/db-client'
 import formidable from 'formidable'
-import { saveImage } from '@/helpers/saveImage'
+import { getNewFilePath, saveImage } from '@/helpers/saveImage'
 
 export const getPosts = async (req: Request, res: Response) => {
   try {
@@ -9,6 +9,28 @@ export const getPosts = async (req: Request, res: Response) => {
     const offset = Number(req.query.offset) || 0
     const posts = await Post.findAll({ limit, offset })
     res.status(200).json(posts)
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message })
+    } else {
+      res.status(500).json({ error: 'Server unknown error' })
+    }
+  }
+}
+
+export const getPostById = async (req: Request, res: Response) => {
+  try {
+    const id = req.params.id
+    const post = await Post.findByPk(id)
+    const postBlocks = await PostBLock.findAll({
+      where: {
+        postId: id
+      }
+    })
+    res.status(200).json({
+      post,
+      postBlocks
+    })
   } catch (error) {
     if (error instanceof Error) {
       res.status(500).json({ error: error.message })
@@ -42,10 +64,18 @@ export const createPost = async (req: Request, res: Response) => {
       const isPublished = fields.isPublished && fields.isPublished[0]
       const content = fields.content && fields.content[0]
       const photo = files.photo && files.photo[0]
+      let photoPath
       if (photo) {
         await saveImage(photo, res)
+        photoPath = getNewFilePath(photo?.originalFilename)
       }
-      const post = await Post.create({ title, content, photo: photo?.originalFilename || null, isPublished })
+      const photoPathArr = photoPath?.split('/')
+      if (!photoPathArr) {
+        throw new Error('Error while loading image')
+      }
+      const newImageName = photoPathArr[photoPathArr?.length - 1]
+
+      const post = await Post.create({ title, content, photo: newImageName || null, isPublished })
       res.status(201).json(post)
     } catch (error) {
       if (error instanceof Error) {

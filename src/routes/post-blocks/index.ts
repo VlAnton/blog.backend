@@ -5,8 +5,8 @@ import { saveImage } from '@/helpers/saveImage'
 
 export const getPostBlocks = async (_req: Request, res: Response) => {
   try {
-    const posts = await PostBLock.findAll()
-    res.status(200).json(posts)
+    const postBlocks = await PostBLock.findAll()
+    res.status(200).json(postBlocks)
   } catch (error) {
     if (error instanceof Error) {
       res.status(500).json({ error: error.message })
@@ -25,11 +25,12 @@ export const createPostBlock = async (req: Request, res: Response) => {
     try {
       const title = fields.title && fields.title[0]
       const content = fields.content && fields.content[0]
+      const postId = fields.postId && fields.postId[0]
       const photo = files.photo && files.photo[0]
       if (photo) {
         await saveImage(photo, res)
       }
-      const post = await PostBLock.create({ title, content, photo: photo?.originalFilename || null })
+      const post = await PostBLock.create({ title, content, postId, photo: photo?.originalFilename || null })
       res.status(201).json(post)
     } catch (error) {
       if (error instanceof Error) {
