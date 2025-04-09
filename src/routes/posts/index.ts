@@ -1,5 +1,6 @@
 import { Request, Response } from 'express'
 import { Post, PostBLock } from '@/db/db-client'
+import websocket from '../../../websocket'
 import formidable from 'formidable'
 import { getNewFilePath, saveImage } from '@/helpers/saveImage'
 
@@ -7,10 +8,15 @@ export const getPosts = async (req: Request, res: Response) => {
   try {
     const limit = Number(req.query.limit) || 6
     const offset = Number(req.query.offset) || 0
-    const posts = await Post.findAll({ limit, offset })
+    const posts = await Post.findAll({
+      limit,
+      offset,
+      order: [['updatedAt', 'DESC']],
+    })
     res.status(200).json(posts)
   } catch (error) {
     if (error instanceof Error) {
+      console.log(error.message)
       res.status(500).json({ error: error.message })
     } else {
       res.status(500).json({ error: 'Server unknown error' })
@@ -24,12 +30,12 @@ export const getPostById = async (req: Request, res: Response) => {
     const post = await Post.findByPk(id)
     const postBlocks = await PostBLock.findAll({
       where: {
-        postId: id
-      }
+        postId: id,
+      },
     })
     res.status(200).json({
       post,
-      postBlocks
+      postBlocks,
     })
   } catch (error) {
     if (error instanceof Error) {
@@ -75,7 +81,13 @@ export const createPost = async (req: Request, res: Response) => {
       }
       const newImageName = photoPathArr[photoPathArr?.length - 1]
 
-      const post = await Post.create({ title, content, photo: newImageName || null, isPublished })
+      const post = await Post.create({
+        title,
+        content,
+        photo: newImageName || null,
+        isPublished,
+      })
+      websocket.broadcastNewPost(post)
       res.status(201).json(post)
     } catch (error) {
       if (error instanceof Error) {
