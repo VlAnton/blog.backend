@@ -64,6 +64,7 @@ export const createPost = async (req: Request, res: Response) => {
   form.parse(req, async (err, fields, files) => {
     if (err) {
       res.status(500).json({ error: err.message })
+      return
     }
     try {
       const title = fields.title && fields.title[0]
@@ -77,7 +78,8 @@ export const createPost = async (req: Request, res: Response) => {
       }
       const photoPathArr = photoPath?.split('/')
       if (!photoPathArr) {
-        throw new Error('Error while loading image')
+        res.status(500).json({ error: 'Error while loading image' })
+        return
       }
       const newImageName = photoPathArr[photoPathArr?.length - 1]
 
