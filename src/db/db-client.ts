@@ -1,5 +1,4 @@
-import { postModel } from '@/models/post'
-import { postBlockModel } from '@/models/postBlock'
+import { postModel, postBlockModel, roleModel, initUserModel } from '@/models'
 import { Sequelize, SequelizeOptions } from 'sequelize-typescript'
 
 const {
@@ -23,9 +22,14 @@ const sequelize = new Sequelize(sequelizeOptions)
 
 export const Post = sequelize.define('Post', postModel, {})
 export const PostBLock = sequelize.define('PostBlock', postBlockModel, {})
+export const User = initUserModel(sequelize)
+export const Role = sequelize.define('Role', roleModel, {})
 
-Post.hasMany(PostBLock, { foreignKey: 'postId' })
 PostBLock.belongsTo(Post, { foreignKey: 'postId' })
+Post.hasMany(PostBLock, { foreignKey: 'postId' })
+
+User.belongsTo(Role, { foreignKey: 'roleId' })
+Role.hasMany(User, { foreignKey: 'roleId' })
 
 export async function dbConnect() {
   try {

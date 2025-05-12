@@ -23,6 +23,10 @@ export const postBlockModel: ModelAttributes<Model, IPost> = {
   },
   postId: {
     type: DataType.INTEGER,
-    allowNull: true
-  }
+    references: {
+      model: 'Posts',
+      key: 'id',
+    },
+    onDelete: 'CASCADE',
+  },
 }

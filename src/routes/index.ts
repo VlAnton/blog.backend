@@ -7,7 +7,9 @@ import {
   getPostsTotalCount,
   getPostById,
 } from '@/routes/posts'
-import { createPostBlock, getPostBlocks } from './post-blocks'
+import { login, register } from '@/routes/user'
+import { createPostBlock, getPostBlocks } from '@/routes/post-blocks'
+import { createRole, deleteRole, getRoleByID, getRoles } from '@/routes/role'
 
 const router = express.Router()
 
@@ -20,5 +22,13 @@ router.get('/posts/:id', getPostById)
 
 router.get('/post-blocks/', getPostBlocks)
 router.post('/post-blocks/', createPostBlock)
+
+router.post('/roles/', createRole)
+router.get('/roles/', getRoles)
+router.get('/roles/:id', getRoleByID)
+router.delete('/roles/:id', deleteRole)
+
+router.post('/login/', login)
+router.post('/register/', register)
 
 export default router

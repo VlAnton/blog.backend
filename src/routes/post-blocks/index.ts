@@ -21,6 +21,7 @@ export const createPostBlock = async (req: Request, res: Response) => {
   form.parse(req, async (err, fields, files) => {
     if (err) {
       res.status(500).json({ error: err.message })
+      return
     }
     try {
       const title = fields.title && fields.title[0]
@@ -30,7 +31,12 @@ export const createPostBlock = async (req: Request, res: Response) => {
       if (photo) {
         await saveImage(photo, res)
       }
-      const post = await PostBLock.create({ title, content, postId, photo: photo?.originalFilename || null })
+      const post = await PostBLock.create({
+        title,
+        content,
+        postId,
+        photo: photo?.originalFilename || null,
+      })
       res.status(201).json(post)
     } catch (error) {
       if (error instanceof Error) {

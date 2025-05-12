@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import { Op } from 'sequelize'
 import { Post, PostBLock } from '@/db/db-client'
 import websocket from '../../../websocket'
 import formidable from 'formidable'
@@ -8,15 +9,23 @@ export const getPosts = async (req: Request, res: Response) => {
   try {
     const limit = Number(req.query.limit) || 6
     const offset = Number(req.query.offset) || 0
+    const search = String(req.query.search) || ''
     const posts = await Post.findAll({
       limit,
       offset,
+      where: {
+        title: {
+          [Op.like]: `%${search}%`,
+        },
+        content: {
+          [Op.like]: `%${search}%`,
+        },
+      },
       order: [['updatedAt', 'DESC']],
     })
     res.status(200).json(posts)
   } catch (error) {
     if (error instanceof Error) {
-      console.log(error.message)
       res.status(500).json({ error: error.message })
     } else {
       res.status(500).json({ error: 'Server unknown error' })
@@ -46,10 +55,20 @@ export const getPostById = async (req: Request, res: Response) => {
   }
 }
 
-export const getPostsTotalCount = async (_req: Request, res: Response) => {
+export const getPostsTotalCount = async (req: Request, res: Response) => {
   try {
-    const posts = await Post.count()
-    res.status(200).json(posts)
+    const search = req.query.search || ''
+    const posts = await Post.findAll({
+      where: {
+        title: {
+          [Op.like]: `%${search}%`,
+        },
+        content: {
+          [Op.like]: `%${search}%`,
+        },
+      },
+    })
+    res.status(200).json(posts.length)
   } catch (error) {
     if (error instanceof Error) {
       res.status(500).json({ error: error.message })
@@ -64,6 +83,7 @@ export const createPost = async (req: Request, res: Response) => {
   form.parse(req, async (err, fields, files) => {
     if (err) {
       res.status(500).json({ error: err.message })
+      return
     }
     try {
       const title = fields.title && fields.title[0]
@@ -77,7 +97,8 @@ export const createPost = async (req: Request, res: Response) => {
       }
       const photoPathArr = photoPath?.split('/')
       if (!photoPathArr) {
-        throw new Error('Error while loading image')
+        res.status(500).json({ error: 'Error while loading image' })
+        return
       }
       const newImageName = photoPathArr[photoPathArr?.length - 1]
 
@@ -102,9 +123,10 @@ export const createPost = async (req: Request, res: Response) => {
 export const deletePost = async (req: Request, res: Response) => {
   const { id } = req.params
   try {
-    const topic = await Post.findByPk(id)
-    if (topic) {
-      await topic.destroy()
+    const post = await Post.findByPk(id)
+    if (post) {
+      await post.destroy()
+      websocket.broadcastDeletePost(post.id)
       res.status(204).send()
     } else {
       res.status(404).json({ error: 'Post not found' })
