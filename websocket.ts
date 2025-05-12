@@ -25,7 +25,20 @@ function broadcastNewPost(post: any) {
   })
 }
 
+function broadcastDeletePost(postId: string) {
+  const data = JSON.stringify({
+    type: 'delete_post',
+    payload: postId,
+  })
+  wsClients.forEach((ws: any) => {
+    if (ws.readyState === 1) {
+      ws.send(data)
+    }
+  })
+}
+
 export default {
   setupWebSocket,
   broadcastNewPost,
+  broadcastDeletePost,
 }

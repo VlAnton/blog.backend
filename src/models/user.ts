@@ -8,6 +8,7 @@ export interface UserAttributes {
   username: string
   email: string
   password: string
+  roleId: number
 }
 
 export interface UserCreationAttributes
@@ -22,6 +23,7 @@ export class User
   public username!: string
   public email!: string
   public password!: string
+  public roleId!: number
 
   // timestamps (если нужны)
   public readonly createdAt!: Date
@@ -46,13 +48,21 @@ export function initUserModel(sequelize: Sequelize): typeof User {
         allowNull: false,
       },
       password: {
-        type: DataTypes.STRING,
+        type: DataTypes.STRING(100),
         allowNull: false,
+      },
+      roleId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'Roles',
+          key: 'id',
+        },
       },
     },
     {
       sequelize,
-      tableName: 'users',
+      tableName: 'Users',
       modelName: 'User',
       timestamps: true,
     }

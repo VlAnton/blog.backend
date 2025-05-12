@@ -30,6 +30,7 @@ export const login = async (req: Request, res: Response) => {
       const isPasswordValid = await bcrypt.compare(plainPassword, user.password)
       if (!isPasswordValid) {
         res.status(500).json({ error: 'Invalid password' })
+        return
       }
       res.status(200).json({ user })
     })
@@ -53,6 +54,7 @@ export const register = async (req: Request, res: Response) => {
       const email = fields.email && fields.email[0]
       const plainPassword = fields.password && fields.password[0]
       const username = fields.username && fields.username[0]
+      const roleId = Number(req.query.roleId) || 3
       if (!email || !plainPassword || !username) {
         res.status(500).json({ error: 'Missing required fields' })
         return
@@ -71,6 +73,7 @@ export const register = async (req: Request, res: Response) => {
         username,
         email,
         password,
+        roleId,
       })
       res.status(201).json(user)
     } catch (error) {
