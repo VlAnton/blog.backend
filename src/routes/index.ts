@@ -8,7 +8,6 @@ import {
   getPostById,
 } from '@/routes/posts'
 import { login, register } from '@/routes/user'
-import { createPostBlock, getPostBlocks } from '@/routes/post-blocks'
 import { createRole, deleteRole, getRoleByID, getRoles } from '@/routes/role'
 
 const router = express.Router()
@@ -19,9 +18,6 @@ router.post('/posts/', createPost)
 router.delete('/posts/:id', deletePost)
 router.put('/posts/:id', updatePost)
 router.get('/posts/:id', getPostById)
-
-router.get('/post-blocks/', getPostBlocks)
-router.post('/post-blocks/', createPostBlock)
 
 router.post('/roles/', createRole)
 router.get('/roles/', getRoles)

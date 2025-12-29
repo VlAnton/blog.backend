@@ -1,15 +1,19 @@
 import { Request, Response } from 'express'
 import { Op } from 'sequelize'
-import { Post, PostBLock } from '@/db/db-client'
+import { Post } from '@/db/db-client'
 import websocket from '../../../websocket'
-import formidable from 'formidable'
-import { getNewFilePath, saveImage } from '@/helpers/saveImage'
+import {
+  textToMarkdown,
+  markdownToHtml,
+  htmlToText,
+} from './utils/parseContent'
+import { PostDto } from '@/models'
 
 export const getPosts = async (req: Request, res: Response) => {
   try {
-    const limit = Number(req.query.limit) || 6
-    const offset = Number(req.query.offset) || 0
-    const search = String(req.query.search) || ''
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 6
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : 0
+    const search = req.query.search ?? ''
     const posts = await Post.findAll({
       limit,
       offset,
@@ -17,7 +21,7 @@ export const getPosts = async (req: Request, res: Response) => {
         title: {
           [Op.like]: `%${search}%`,
         },
-        content: {
+        contentText: {
           [Op.like]: `%${search}%`,
         },
       },
@@ -37,14 +41,11 @@ export const getPostById = async (req: Request, res: Response) => {
   try {
     const id = req.params.id
     const post = await Post.findByPk(id)
-    const postBlocks = await PostBLock.findAll({
-      where: {
-        postId: id,
-      },
-    })
+    if (!post) {
+      throw new Error('Post not found')
+    }
     res.status(200).json({
       post,
-      postBlocks,
     })
   } catch (error) {
     if (error instanceof Error) {
@@ -57,13 +58,13 @@ export const getPostById = async (req: Request, res: Response) => {
 
 export const getPostsTotalCount = async (req: Request, res: Response) => {
   try {
-    const search = req.query.search || ''
+    const search = req.query.search ?? ''
     const posts = await Post.findAll({
       where: {
         title: {
           [Op.like]: `%${search}%`,
         },
-        content: {
+        contentText: {
           [Op.like]: `%${search}%`,
         },
       },
@@ -78,46 +79,29 @@ export const getPostsTotalCount = async (req: Request, res: Response) => {
   }
 }
 
-export const createPost = async (req: Request, res: Response) => {
-  const form = formidable({})
-  form.parse(req, async (err, fields, files) => {
-    if (err) {
-      res.status(500).json({ error: err.message })
-      return
-    }
-    try {
-      const title = fields.title && fields.title[0]
-      const isPublished = fields.isPublished && fields.isPublished[0]
-      const content = fields.content && fields.content[0]
-      const photo = files.photo && files.photo[0]
-      let photoPath
-      if (photo) {
-        await saveImage(photo, res)
-        photoPath = getNewFilePath(photo?.originalFilename)
-      }
-      const photoPathArr = photoPath?.split('/')
-      if (!photoPathArr) {
-        res.status(500).json({ error: 'Error while loading image' })
-        return
-      }
-      const newImageName = photoPathArr[photoPathArr?.length - 1]
+export async function createPost(req: Request, res: Response) {
+  const dto = req.body as PostDto
+  const contentMd = textToMarkdown(dto.contentText)
+  const contentHtml = markdownToHtml(contentMd)
+  const contentText = htmlToText(contentHtml)
+  try {
+    const post = await Post.create({
+      title: dto.title,
+      isPublished: dto.isPublished,
 
-      const post = await Post.create({
-        title,
-        content,
-        photo: newImageName || null,
-        isPublished,
-      })
-      websocket.broadcastNewPost(post)
-      res.status(201).json(post)
-    } catch (error) {
-      if (error instanceof Error) {
-        res.status(500).json({ error: error.message })
-      } else {
-        res.status(500).json({ error: 'Server unknown error' })
-      }
+      contentMd,
+      contentHtml,
+      contentText,
+    })
+    websocket.broadcastNewPost(post)
+    res.status(201).json(post)
+  } catch (error) {
+    if (error instanceof Error) {
+      res.status(500).json({ error: error.message })
+    } else {
+      res.status(500).json({ error: 'Server unknown error' })
     }
-  })
+  }
 }
 
 export const deletePost = async (req: Request, res: Response) => {
